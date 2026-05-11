@@ -1,0 +1,27 @@
+name: 커머스 데일리 브리핑
+
+on:
+  schedule:
+    - cron: '40 23 * * *'  # 한국시간 08:40 (UTC 23:40)
+  workflow_dispatch:
+
+jobs:
+  send-daily-brief:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Python 설정
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: 패키지 설치
+        run: pip install requests reportlab
+      - name: 브리핑 실행
+        env:
+          NARA_API_KEY: ${{ secrets.NARA_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_CX: ${{ secrets.GOOGLE_CX }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          GMAIL_PASSWORD: ${{ secrets.GMAIL_PASSWORD }}
+        run: python main.py
