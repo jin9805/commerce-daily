@@ -5,6 +5,8 @@ from email.mime.base import MIMEBase
 from email import encoders
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from datetime import datetime
 import subprocess
 
@@ -17,10 +19,8 @@ GMAIL_PASSWORD = os.environ['GMAIL_PASSWORD']
 GMAIL_USER = 'yejin9024@gmail.com'
 
 def setup_font():
-    subprocess.run(['apt-get', 'install', '-y', 'fonts-nanum'], capture_output=True)
+    subprocess.run(['sudo', 'apt-get', 'install', '-y', 'fonts-nanum'], capture_output=True)
     font_path = '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
     pdfmetrics.registerFont(TTFont('NanumGothic', font_path))
     return 'NanumGothic'
 
@@ -46,7 +46,8 @@ def get_nara_bids():
                     results.append({
                         'title': item.get('bidNtceNm', ''),
                         'org': item.get('ntceInsttNm', ''),
-                        'deadline': item.get('bidClseDt', '')
+                        'deadline': item.get('bidClseDt', ''),
+                        'link': f'https://www.g2b.go.kr'
                     })
         except Exception as e:
             print(f'나라장터 오류: {e}')
@@ -67,18 +68,19 @@ def get_google_bids():
             }
             res = requests.get(url, params=params, timeout=10)
             data = res.json()
-            for item in data.get('items', [])[:3]:
+            for item in data.get('items', [])[:5]:
                 results.append({
                     'title': item.get('title', ''),
-                    'snippet': item.get('snippet', '')
+                    'snippet': item.get('snippet', ''),
+                    'link': item.get('link', '')
                 })
         except Exception as e:
             print(f'구글 오류: {e}')
-    return results[:8]
+    return results[:10]
 
 def get_naver_news():
     results = []
-    keywords = ['이커머스', '커머스 운영대행', '온라인쇼핑몰']
+    keywords = ['이커머스', '커머스 운영대행', '온라인쇼핑몰', '쿠팡', '네이버쇼핑', '카카오커머스', '쇼핑몰','T딜','네이트 온딜','커머스','온라인','백화점','톡딜']
     headers = {
         'X-Naver-Client-Id': NAVER_CLIENT_ID,
         'X-Naver-Client-Secret': NAVER_CLIENT_SECRET
@@ -89,13 +91,14 @@ def get_naver_news():
             params = {'query': keyword, 'display': 5, 'sort': 'date'}
             res = requests.get(url, headers=headers, params=params, timeout=10)
             data = res.json()
-            for item in data.get('items', [])[:3]:
+            for item in data.get('items', [])[:4]:
                 title = item.get('title', '').replace('<b>', '').replace('</b>', '')
                 desc = item.get('description', '').replace('<b>', '').replace('</b>', '')
-                results.append({'title': title, 'description': desc})
+                link = item.get('link', '')
+                results.append({'title': title, 'description': desc, 'link': link})
         except Exception as e:
             print(f'네이버 오류: {e}')
-    return results[:10]
+    return results[:25]
 
 def create_pdf(nara_bids, google_bids, news, font_name):
     today = datetime.now().strftime('%Y%m%d')
@@ -104,45 +107,66 @@ def create_pdf(nara_bids, google_bids, news, font_name):
     width, height = A4
     y = height - 50
 
-    def write(text, size=10, gap=16, bold=False):
+    def write(text, size=10, gap=16, color=(0,0,0)):
         nonlocal y
-        if y < 60:
+        if y < 80:
             c.showPage()
             y = height - 50
+        c.setFillColorRGB(*color)
         c.setFont(font_name, size)
-        c.drawString(40, y, text[:60])
+        c.drawString(40, y, str(text)[:65])
         y -= gap
 
-    c.setFont(font_name, 16)
-    c.drawString(40, y, f'커머스 데일리 브리핑 - {datetime.now().strftime("%Y.%m.%d")}')
-    y -= 30
+    def write_link(text, url, size=9, gap=14):
+        nonlocal y
+        if y < 80:
+            c.showPage()
+            y = height - 50
+        c.setFillColorRGB(0.1, 0.4, 0.8)
+        c.setFont(font_name, size)
+        c.drawString(40, y, str(url)[:80])
+        if url:
+            c.linkURL(url, (40, y-2, 500, y+size), relative=0)
+        y -= gap
 
-    c.setFont(font_name, 13)
-    c.drawString(40, y, '📋 나라장터 공공입찰 공고')
-    y -= 20
+    def section_title(text):
+        nonlocal y
+        y -= 5
+        c.setFillColorRGB(0.1, 0.3, 0.7)
+        c.setFont(font_name, 13)
+        c.drawString(40, y, text)
+        y -= 20
+
+    # 제목
+    c.setFillColorRGB(0.1, 0.3, 0.7)
+    c.setFont(font_name, 17)
+    c.drawString(40, y, f'커머스 데일리 브리핑 - {datetime.now().strftime("%Y.%m.%d")}')
+    y -= 35
+
+    # 나라장터
+    section_title('📋 나라장터 공공입찰 공고')
     for bid in nara_bids:
         write(f'• {bid["title"]}', size=10)
-        write(f'  기관: {bid["org"]} | 마감: {bid["deadline"]}', size=9, gap=14)
+        write(f'  기관: {bid["org"]} | 마감: {bid["deadline"]}', size=9, gap=12, color=(0.4,0.4,0.4))
+        write_link('  → 나라장터 바로가기', bid["link"])
     if not nara_bids:
         write('• 해당 공고 없음')
-    y -= 10
 
-    c.setFont(font_name, 13)
-    c.drawString(40, y, '🔍 사기업 입찰공고 (Google)')
-    y -= 20
+    # 구글 사기업
+    section_title('🔍 사기업 입찰공고')
     for bid in google_bids:
         write(f'• {bid["title"]}', size=10)
-        write(f'  {bid["snippet"]}', size=9, gap=14)
+        write(f'  {bid["snippet"]}', size=9, gap=12, color=(0.4,0.4,0.4))
+        write_link(f'  → {bid["link"]}', bid["link"])
     if not google_bids:
         write('• 해당 공고 없음')
-    y -= 10
 
-    c.setFont(font_name, 13)
-    c.drawString(40, y, '📰 커머스 주요 뉴스')
-    y -= 20
+    # 뉴스
+    section_title('📰 커머스 주요 뉴스')
     for item in news:
         write(f'• {item["title"]}', size=10)
-        write(f'  {item["description"]}', size=9, gap=14)
+        write(f'  {item["description"]}', size=9, gap=12, color=(0.4,0.4,0.4))
+        write_link(f'  → {item["link"]}', item["link"])
     if not news:
         write('• 뉴스 없음')
 
@@ -155,7 +179,7 @@ def send_email(pdf_file):
     msg['From'] = GMAIL_USER
     msg['To'] = GMAIL_USER
     msg['Subject'] = f'[커머스 데일리] {today} 입찰공고 & 주요소식'
-    msg.attach(MIMEText('안녕하세요! 오늘의 커머스 데일리 브리핑입니다. 첨부파일을 확인해주세요!', 'plain', 'utf-8'))
+    msg.attach(MIMEText('안녕하세요! 오늘의 커머스 데일리 브리핑입니다.\n첨부파일에서 입찰공고와 뉴스를 확인하세요! 😊', 'plain', 'utf-8'))
     with open(pdf_file, 'rb') as f:
         part = MIMEBase('application', 'octet-stream')
         part.set_payload(f.read())
