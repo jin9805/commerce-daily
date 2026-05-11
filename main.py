@@ -119,3 +119,62 @@ def create_pdf(nara_bids, google_bids, news, font_name):
 
     c.setFont(font_name, 13)
     c.drawString(40, y, '📋 나라장터 공공입찰 공고')
+    y -= 20
+    for bid in nara_bids:
+        write(f'• {bid["title"]}', size=10)
+        write(f'  기관: {bid["org"]} | 마감: {bid["deadline"]}', size=9, gap=14)
+    if not nara_bids:
+        write('• 해당 공고 없음')
+    y -= 10
+
+    c.setFont(font_name, 13)
+    c.drawString(40, y, '🔍 사기업 입찰공고 (Google)')
+    y -= 20
+    for bid in google_bids:
+        write(f'• {bid["title"]}', size=10)
+        write(f'  {bid["snippet"]}', size=9, gap=14)
+    if not google_bids:
+        write('• 해당 공고 없음')
+    y -= 10
+
+    c.setFont(font_name, 13)
+    c.drawString(40, y, '📰 커머스 주요 뉴스')
+    y -= 20
+    for item in news:
+        write(f'• {item["title"]}', size=10)
+        write(f'  {item["description"]}', size=9, gap=14)
+    if not news:
+        write('• 뉴스 없음')
+
+    c.save()
+    return filename
+
+def send_email(pdf_file):
+    today = datetime.now().strftime('%Y.%m.%d')
+    msg = MIMEMultipart()
+    msg['From'] = GMAIL_USER
+    msg['To'] = GMAIL_USER
+    msg['Subject'] = f'[커머스 데일리] {today} 입찰공고 & 주요소식'
+    msg.attach(MIMEText('안녕하세요! 오늘의 커머스 데일리 브리핑입니다. 첨부파일을 확인해주세요!', 'plain', 'utf-8'))
+    with open(pdf_file, 'rb') as f:
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(f.read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename="{pdf_file}"')
+        msg.attach(part)
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        server.send_message(msg)
+    print('메일 발송 완료!')
+
+if __name__ == '__main__':
+    print('폰트 설치 중...')
+    font_name = setup_font()
+    print('수집 시작...')
+    nara = get_nara_bids()
+    google = get_google_bids()
+    news = get_naver_news()
+    print(f'나라장터:{len(nara)} 구글:{len(google)} 뉴스:{len(news)}')
+    pdf = create_pdf(nara, google, news, font_name)
+    print(f'PDF 생성: {pdf}')
+    send_email(pdf)
