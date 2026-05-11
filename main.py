@@ -18,7 +18,7 @@ NAVER_CLIENT_ID = os.environ['NAVER_CLIENT_ID']
 NAVER_CLIENT_SECRET = os.environ['NAVER_CLIENT_SECRET']
 GMAIL_PASSWORD = os.environ['GMAIL_PASSWORD']
 GMAIL_USER = 'yejin9024@gmail.com'
-RECIPIENTS = ['yejin9024@gmail.com', 'lyejin@incross.com']
+RECIPIENTS = ['lyejin@incross.com']
 
 def setup_font():
     subprocess.run(['sudo', 'apt-get', 'install', '-y', 'fonts-nanum'], capture_output=True)
@@ -84,7 +84,7 @@ def get_google_bids():
 
 def get_naver_news():
     results = []
-    keywords = ['이커머스', '커머스 운영대행', '온라인쇼핑몰', '쿠팡', '네이버쇼핑', '카카오커머스','톡딜','백화점','커머스','쇼핑','온라인 쇼핑','쇼핑']
+    keywords = ['이커머스', '커머스 운영대행', '온라인쇼핑몰', '쿠팡', '네이버쇼핑', '카카오커머스','톡딜','백화점','커머스','쇼핑','온라인 쇼핑','쇼핑','T딜','티딜']
     headers = {
         'X-Naver-Client-Id': NAVER_CLIENT_ID,
         'X-Naver-Client-Secret': NAVER_CLIENT_SECRET
