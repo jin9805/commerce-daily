@@ -2,18 +2,23 @@ name: 커머스 데일리 브리핑
 
 on:
   schedule:
-    - cron: '40 23 * * *'  # 한국시간 08:40 (UTC 23:40)
+    - cron: '40 23 * * *'
   workflow_dispatch:
 
 jobs:
   send-daily-brief:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Python 설정
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: 한글 폰트 설치
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-nanum
+          fc-cache -fv
       - name: 패키지 설치
         run: pip install requests reportlab
       - name: 브리핑 실행
