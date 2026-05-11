@@ -6,6 +6,7 @@ from email import encoders
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from datetime import datetime
+import subprocess
 
 NARA_API_KEY = os.environ['NARA_API_KEY']
 GOOGLE_API_KEY = os.environ['GOOGLE_API_KEY']
@@ -14,6 +15,14 @@ NAVER_CLIENT_ID = os.environ['NAVER_CLIENT_ID']
 NAVER_CLIENT_SECRET = os.environ['NAVER_CLIENT_SECRET']
 GMAIL_PASSWORD = os.environ['GMAIL_PASSWORD']
 GMAIL_USER = 'yejin9024@gmail.com'
+
+def setup_font():
+    subprocess.run(['apt-get', 'install', '-y', 'fonts-nanum'], capture_output=True)
+    font_path = '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    pdfmetrics.registerFont(TTFont('NanumGothic', font_path))
+    return 'NanumGothic'
 
 def get_nara_bids():
     results = []
@@ -88,82 +97,25 @@ def get_naver_news():
             print(f'네이버 오류: {e}')
     return results[:10]
 
-def create_pdf(nara_bids, google_bids, news):
+def create_pdf(nara_bids, google_bids, news, font_name):
     today = datetime.now().strftime('%Y%m%d')
     filename = f'commerce_daily_{today}.pdf'
     c = canvas.Canvas(filename, pagesize=A4)
     width, height = A4
     y = height - 50
 
-    def write(text, size=10, gap=14):
+    def write(text, size=10, gap=16, bold=False):
         nonlocal y
         if y < 60:
             c.showPage()
             y = height - 50
-        c.setFont("Helvetica", size)
-        c.drawString(40, y, text[:100])
+        c.setFont(font_name, size)
+        c.drawString(40, y, text[:60])
         y -= gap
 
-    c.setFont("Helvetica-Bold", 15)
-    c.drawString(40, y, f'Commerce Daily - {datetime.now().strftime("%Y.%m.%d")}')
+    c.setFont(font_name, 16)
+    c.drawString(40, y, f'커머스 데일리 브리핑 - {datetime.now().strftime("%Y.%m.%d")}')
     y -= 30
 
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(40, y, '[Public Bids - Nara Market]')
-    y -= 18
-    for bid in nara_bids:
-        write(f'- {bid["title"]}')
-        write(f'  Org: {bid["org"]} | Deadline: {bid["deadline"]}', size=9, gap=12)
-    if not nara_bids:
-        write('- No results')
-    y -= 10
-
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(40, y, '[Private Bids - Google]')
-    y -= 18
-    for bid in google_bids:
-        write(f'- {bid["title"]}')
-        write(f'  {bid["snippet"]}', size=9, gap=12)
-    if not google_bids:
-        write('- No results')
-    y -= 10
-
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(40, y, '[Commerce News - Naver]')
-    y -= 18
-    for item in news:
-        write(f'- {item["title"]}')
-        write(f'  {item["description"]}', size=9, gap=12)
-    if not news:
-        write('- No results')
-
-    c.save()
-    return filename
-
-def send_email(pdf_file):
-    today = datetime.now().strftime('%Y.%m.%d')
-    msg = MIMEMultipart()
-    msg['From'] = GMAIL_USER
-    msg['To'] = GMAIL_USER
-    msg['Subject'] = f'[커머스 데일리] {today} 입찰공고 & 주요소식'
-    msg.attach(MIMEText('안녕하세요! 오늘의 커머스 데일리 브리핑입니다. 첨부파일을 확인해주세요!', 'plain', 'utf-8'))
-    with open(pdf_file, 'rb') as f:
-        part = MIMEBase('application', 'octet-stream')
-        part.set_payload(f.read())
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition', f'attachment; filename="{pdf_file}"')
-        msg.attach(part)
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-        server.login(GMAIL_USER, GMAIL_PASSWORD)
-        server.send_message(msg)
-    print('메일 발송 완료!')
-
-if __name__ == '__main__':
-    print('수집 시작...')
-    nara = get_nara_bids()
-    google = get_google_bids()
-    news = get_naver_news()
-    print(f'나라장터:{len(nara)} 구글:{len(google)} 뉴스:{len(news)}')
-    pdf = create_pdf(nara, google, news)
-    print(f'PDF 생성: {pdf}')
-    send_email(pdf)
+    c.setFont(font_name, 13)
+    c.drawString(40, y, '📋 나라장터 공공입찰 공고')
