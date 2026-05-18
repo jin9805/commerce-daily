@@ -16,8 +16,8 @@ GOOGLE_CX = os.environ['GOOGLE_CX']
 NAVER_CLIENT_ID = os.environ['NAVER_CLIENT_ID']
 NAVER_CLIENT_SECRET = os.environ['NAVER_CLIENT_SECRET']
 GMAIL_PASSWORD = os.environ['GMAIL_PASSWORD']
-GMAIL_USER = 'lyejin@incross.com'
-RECIPIENTS = [ 'lyejin@incross.com']
+GMAIL_USER = 'yejin9024@gmail.com'
+RECIPIENTS = [ 'lyejin@incross.com',dawon@incross.com','kun5115@incross.com']
 
 def setup_font():
     subprocess.run(['sudo', 'apt-get', 'install', '-y', 'fonts-nanum'], capture_output=True)
